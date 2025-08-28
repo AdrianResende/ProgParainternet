@@ -50,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
       { check: "required", message: "Campo obrigatório" },
       { check: "numberNonNegative", message: "Número de dependentes deve ser >= 0." },
     ],
-    impostoRenda: [{ check: "required", message: "Campo obrigatório" }],
   };
 
   function showFieldError(id, message) {
@@ -106,10 +105,30 @@ document.addEventListener("DOMContentLoaded", () => {
     return !hasError;
   }
 
+  function calculateIR() {
+    const salarioRaw = fields.salario.value;
+    const salario = parseFloat(String(salarioRaw).replace(',', '.')) || 0;
+    const dependentes = parseInt(fields.numeroDependentes.value, 10);
+    const dep = isNaN(dependentes) ? 0 : dependentes;
+    let base = salario - (200 * dep);
+    if (isNaN(base) || base < 0) base = 0;
+    const aliquota = 0.15; // alíquota fixa
+    const ir = Math.round(base * aliquota * 100) / 100;
+    fields.impostoRenda.value = ir.toFixed(2).replace('.', ',');
+  }
+
+  // calcular ao sair do campo numeroDependentes
+  if (fields.numeroDependentes) {
+    fields.numeroDependentes.addEventListener('blur', calculateIR);
+  }
+
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    if (!validateAll()) return;
+  // Garantir cálculo do IR antes da validação (caso o campo não tenha perdido o foco)
+  try { calculateIR(); console.log('IR calculado:', fields.impostoRenda.value); } catch (err) { console.warn('Erro ao calcular IR:', err); }
+
+  if (!validateAll()) return;
 
     Toastify({
       text: "Cadastro realizado com sucesso!",
